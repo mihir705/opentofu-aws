@@ -1,0 +1,114 @@
+# Secrets Manager module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/secrets-manager/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+#
+# Never commit real secret values to version control.
+
+# ---------------------------------------------------------------------------
+# Basic — empty secret (value set outside Terraform)
+# ---------------------------------------------------------------------------
+
+secrets = {
+  app-config = {
+    name        = "my-company/app/config/prod"
+    description = "Application configuration secret"
+
+    tags = {
+      Purpose = "app-config"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Generated random password (JSON with username + password)
+# ---------------------------------------------------------------------------
+# secrets = {
+#   database-credentials = {
+#     name_prefix = "my-company/database/credentials/prod-"
+#     description = "Database credentials with generated password"
+#
+#     generate_random_password = {
+#       length   = 32
+#       username = "db_admin"
+#     }
+#
+#     ignore_secret_changes = true
+#
+#     tags = {
+#       Purpose = "database-credentials"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Initial secret value (use only for bootstrap; prefer external rotation)
+# ---------------------------------------------------------------------------
+# secrets = {
+#   api-key = {
+#     name        = "my-company/api/key/prod"
+#     description = "API key secret"
+#
+#     secret_string = jsonencode({
+#       api_key = "CHANGE_ME"
+#     })
+#
+#     ignore_secret_changes = true
+#
+#     tags = {
+#       Purpose = "api-key"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# KMS encryption + rotation
+# ---------------------------------------------------------------------------
+# secrets = {
+#   database-credentials = {
+#     name        = "my-company/database/credentials/prod"
+#     description = "Encrypted database credentials"
+#     kms_key_id  = "arn:aws:kms:ap-south-1:123456789012:key/abcd1234-5678-90ab-cdef-1234567890ab"
+#
+#     generate_random_password = {
+#       length   = 32
+#       username = "db_admin"
+#     }
+#
+#     rotation = {
+#       lambda_arn               = "arn:aws:lambda:ap-south-1:123456789012:function:rotate-secret"
+#       automatically_after_days = 30
+#     }
+#
+#     ignore_secret_changes = true
+#
+#     tags = {
+#       Purpose = "database-credentials"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Multi-region replicas
+# ---------------------------------------------------------------------------
+# secrets = {
+#   global-config = {
+#     name        = "my-company/global/config/prod"
+#     description = "Global configuration secret"
+#
+#     replica_regions = [
+#       {
+#         region     = "us-east-1"
+#         kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/abcd1234-5678-90ab-cdef-1234567890ab"
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "global-config"
+#     }
+#   }
+# }

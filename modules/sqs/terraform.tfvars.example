@@ -1,0 +1,78 @@
+# SQS module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/sqs/README.md
+
+# ---------------------------------------------------------------------------
+# Standard queue with SSE-SQS and dead-letter queue
+# ---------------------------------------------------------------------------
+
+sqs_queues = {
+  app-jobs = {
+    name                       = "my-company-app-jobs-prod"
+    visibility_timeout_seconds = 60
+    receive_wait_time_seconds  = 20
+    create_dlq                 = true
+    max_receive_count          = 5
+
+    tags = {
+      Purpose = "background-jobs"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# FIFO queue with high throughput
+# ---------------------------------------------------------------------------
+# sqs_queues = {
+#   order-events = {
+#     name                        = "my-company-order-events-prod.fifo"
+#     fifo_queue                  = true
+#     content_based_deduplication = true
+#     deduplication_scope         = "messageGroup"
+#     fifo_throughput_limit       = "perMessageGroupId"
+#     create_dlq                  = true
+#
+#     tags = { Purpose = "order-events" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Queue wired to SNS topic (auto queue policy for SNS publish)
+# ---------------------------------------------------------------------------
+# sns_topics = {
+#   app-events = {
+#     name = "my-company-app-events-prod"
+#     subscriptions = {
+#       queue = {
+#         protocol = "sqs"
+#         endpoint = "arn:aws:sqs:ap-south-1:123456789012:my-company-app-events-prod"
+#       }
+#     }
+#   }
+# }
+#
+# sqs_queues = {
+#   app-events = {
+#     name           = "my-company-app-events-prod"
+#     sns_topic_keys = ["app-events"]
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# KMS-encrypted queue
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   app-encryption = {
+#     description         = "Application encryption key"
+#     enable_key_rotation = true
+#     aliases             = ["my-company/app/prod"]
+#   }
+# }
+#
+# sqs_queues = {
+#   secure-jobs = {
+#     name        = "my-company-secure-jobs-prod"
+#     kms_key_key = "app-encryption"
+#   }
+# }

@@ -1,0 +1,113 @@
+# EFS module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/efs/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Shared application file system for ECS/EKS workloads
+# ---------------------------------------------------------------------------
+# vpcs = { main = { ... private_subnets ... } }
+#
+# security_groups = {
+#   efs = {
+#     name        = "my-company-efs-prod"
+#     vpc_key     = "main"
+#     description = "EFS NFS access from application tasks"
+#     ingress_rules = [{
+#       description                  = "NFS from app tasks"
+#       protocol                     = "tcp"
+#       from_port                    = 2049
+#       to_port                      = 2049
+#       referenced_security_group_id = null
+#       self_reference               = false
+#       cidr_blocks                  = ["10.0.0.0/16"]
+#     }]
+#   }
+# }
+#
+# efs_file_systems = {
+#   app-data = {
+#     name                = "my-company-app-data-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b"]
+#     security_group_keys = ["efs"]
+#     encrypted           = true
+#
+#     lifecycle_policy = {
+#       transition_to_ia = "AFTER_30_DAYS"
+#     }
+#
+#     access_points = {
+#       app = {
+#         path = "/app"
+#         posix_user = {
+#           uid = 1000
+#           gid = 1000
+#         }
+#         creation_info = {
+#           owner_uid   = 1000
+#           owner_gid   = 1000
+#           permissions = "755"
+#         }
+#       }
+#     }
+#
+#     tags = { Purpose = "shared-app-storage" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# KMS-encrypted EFS with AWS Backup enabled
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   app-encryption = {
+#     description         = "Application encryption key"
+#     enable_key_rotation = true
+#     policy_statements = [{
+#       sid    = "AllowEFSService"
+#       effect = "Allow"
+#       actions = [
+#         "kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey*",
+#         "kms:CreateGrant", "kms:DescribeKey",
+#       ]
+#       resources = ["*"]
+#       principals = {
+#         type        = "Service"
+#         identifiers = ["elasticfilesystem.amazonaws.com"]
+#       }
+#     }]
+#   }
+# }
+#
+# efs_file_systems = {
+#   secure-data = {
+#     name            = "my-company-secure-data-prod"
+#     vpc_key         = "main"
+#     subnet_keys     = ["az-a", "az-b"]
+#     security_group_keys = ["efs"]
+#     kms_key_key     = "app-encryption"
+#     enable_backup_policy = true
+#
+#     tags = { Purpose = "secure-shared-storage" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Provisioned throughput for high-IOPS workloads
+# ---------------------------------------------------------------------------
+# efs_file_systems = {
+#   high-io = {
+#     name                            = "my-company-high-io-prod"
+#     vpc_key                         = "main"
+#     subnet_keys                     = ["az-a", "az-b"]
+#     security_group_keys             = ["efs"]
+#     throughput_mode                 = "provisioned"
+#     provisioned_throughput_in_mibps = 256
+#
+#     tags = { Purpose = "high-io-storage" }
+#   }
+# }

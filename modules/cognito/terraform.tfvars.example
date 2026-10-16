@@ -1,0 +1,124 @@
+# Cognito module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/cognito/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Email sign-in with hosted UI (OAuth authorization code flow)
+# ---------------------------------------------------------------------------
+# cognito_user_pools = {
+#   app = {
+#     name = "my-company-app-prod"
+#
+#     domain = {
+#       prefix = "my-company-app-prod"
+#     }
+#
+#     clients = {
+#       web = {
+#         allowed_oauth_flows_user_pool_client = true
+#         allowed_oauth_flows                  = ["code"]
+#         allowed_oauth_scopes                 = ["email", "openid", "profile"]
+#         callback_urls                        = ["https://app.example.com/callback"]
+#         logout_urls                          = ["https://app.example.com/logout"]
+#       }
+#     }
+#
+#     tags = { Purpose = "app-authentication" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# SPA / mobile client with SRP auth (no client secret)
+# ---------------------------------------------------------------------------
+# cognito_user_pools = {
+#   app = {
+#     name = "my-company-app-prod"
+#
+#     clients = {
+#       mobile = {
+#         explicit_auth_flows = [
+#           "ALLOW_USER_SRP_AUTH",
+#           "ALLOW_REFRESH_TOKEN_AUTH",
+#         ]
+#       }
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Lambda triggers (wire via lambda_functions keys in prod)
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   pre-signup = {
+#     name    = "my-company-pre-signup-prod"
+#     runtime = "nodejs20.x"
+#     handler = "index.handler"
+#     # ...
+#   }
+# }
+#
+# cognito_user_pools = {
+#   app = {
+#     name = "my-company-app-prod"
+#
+#     lambda_config = {
+#       pre_sign_up_key = "pre-signup"
+#     }
+#
+#     clients = {
+#       api = { generate_secret = true }
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Identity pool with authenticated IAM role
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   cognito-auth = {
+#     name           = "my-company-cognito-auth-prod"
+#     trust_services = ["cognito-identity.amazonaws.com"]
+#     policy_statements = [{
+#       effect    = "Allow"
+#       actions   = ["s3:GetObject"]
+#       resources = ["arn:aws:s3:::my-company-app-data-prod/*"]
+#     }]
+#   }
+# }
+#
+# cognito_user_pools = {
+#   app = {
+#     name = "my-company-app-prod"
+#
+#     clients = {
+#       mobile = {}
+#     }
+#
+#     identity_pool = {
+#       name                   = "my-company-app-identity-prod"
+#       client_key             = "mobile"
+#       authenticated_role_key = "cognito-auth"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# API Gateway JWT authorizer (use outputs after apply)
+# ---------------------------------------------------------------------------
+# api_gateways = {
+#   api = {
+#     # ...
+#     authorizers = {
+#       cognito = {
+#         type   = "JWT"
+#         issuer = "https://cognito-idp.ap-south-1.amazonaws.com/<user_pool_id>"
+#         audience = ["<client_id>"]
+#       }
+#     }
+#   }
+# }

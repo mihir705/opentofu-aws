@@ -1,0 +1,102 @@
+# KMS module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/kms/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region         = "ap-south-1"
+#   aws_replica_region = "us-east-1"   # only when using KMS replica keys
+#   default_tags       = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Basic — application encryption key for S3 and Secrets Manager
+# ---------------------------------------------------------------------------
+
+kms_keys = {
+  app-encryption = {
+    description         = "Application data encryption key"
+    enable_key_rotation = true
+    allowed_services    = ["s3", "secretsmanager"]
+    aliases             = ["my-company/app/prod"]
+
+    tags = {
+      Purpose = "app-encryption"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Multi-Region key with DR replica (requires aws_replica_region provider)
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   global-encryption = {
+#     description         = "Multi-Region encryption key with DR replica"
+#     multi_region        = true
+#     replica_region      = "us-east-1"
+#     enable_key_rotation = true
+#     allowed_services    = ["secretsmanager"]
+#     aliases             = ["my-company/global/prod"]
+#
+#     tags = {
+#       Purpose = "global-encryption"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Custom policy statements (merged into default root policy)
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   team-encryption = {
+#     description         = "Key with team-specific access"
+#     enable_key_rotation = true
+#
+#     policy_statements = [
+#       {
+#         sid    = "AllowSecurityTeam"
+#         effect = "Allow"
+#         actions = [
+#           "kms:Decrypt",
+#           "kms:DescribeKey",
+#         ]
+#         principals = {
+#           type        = "AWS"
+#           identifiers = ["arn:aws:iam::123456789012:role/security-audit"]
+#         }
+#       }
+#     ]
+#
+#     aliases = ["my-company/security/prod"]
+#
+#     tags = {
+#       Purpose = "team-encryption"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Full custom key policy (cannot combine with allowed_services or policy_statements)
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   custom-policy-key = {
+#     description = "Key with fully custom policy"
+#     key_policy_json = jsonencode({
+#       Version = "2012-10-17"
+#       Statement = [
+#         {
+#           Sid    = "EnableRootAccountPermissions"
+#           Effect = "Allow"
+#           Principal = {
+#             AWS = "arn:aws:iam::123456789012:root"
+#           }
+#           Action   = "kms:*"
+#           Resource = "*"
+#         }
+#       ]
+#     })
+#
+#     tags = {
+#       Purpose = "custom-policy"
+#     }
+#   }
+# }

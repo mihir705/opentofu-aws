@@ -1,0 +1,120 @@
+# Security Group module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/security-group/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# App servers — allow HTTP from ALB security group, SSH from VPC
+# ---------------------------------------------------------------------------
+
+security_groups = {
+  app = {
+    name        = "my-company-app-prod"
+    vpc_key     = "main"
+    description = "Application instance security group"
+
+    ingress_rules = [
+      {
+        description = "HTTP from VPC"
+        protocol    = "tcp"
+        from_port   = 8080
+        to_port     = 8080
+        cidr_blocks = ["10.0.0.0/16"]
+      }
+    ]
+
+    tags = {
+      Purpose = "app"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Allow traffic from another security group (e.g. ALB SG)
+# ---------------------------------------------------------------------------
+# security_groups = {
+#   app = {
+#     name    = "my-company-app-prod"
+#     vpc_key = "main"
+#
+#     ingress_rules = [
+#       {
+#         description                  = "HTTP from ALB"
+#         protocol                     = "tcp"
+#         from_port                    = 8080
+#         to_port                      = 8080
+#         referenced_security_group_id = "sg-0123456789abcdef0"
+#       }
+#     ]
+#
+#     tags = { Purpose = "app" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Database — only allow Postgres from app security group
+# ---------------------------------------------------------------------------
+# security_groups = {
+#   database = {
+#     name    = "my-company-db-prod"
+#     vpc_key = "main"
+#
+#     ingress_rules = [
+#       {
+#         description                  = "PostgreSQL from app tier"
+#         protocol                     = "tcp"
+#         from_port                    = 5432
+#         to_port                      = 5432
+#         referenced_security_group_id = "sg-app-security-group-id"
+#       }
+#     ]
+#
+#     egress_rules = []
+#
+#     tags = { Purpose = "database" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Web — public HTTP/HTTPS ingress
+# ---------------------------------------------------------------------------
+# security_groups = {
+#   web = {
+#     name    = "my-company-web-prod"
+#     vpc_key = "main"
+#
+#     ingress_rules = [
+#       {
+#         description = "HTTPS from internet"
+#         protocol    = "tcp"
+#         from_port   = 443
+#         to_port     = 443
+#         cidr_blocks = ["0.0.0.0/0"]
+#       },
+#       {
+#         description = "HTTP from internet"
+#         protocol    = "tcp"
+#         from_port   = 80
+#         to_port     = 80
+#         cidr_blocks = ["0.0.0.0/0"]
+#       }
+#     ]
+#
+#     tags = { Purpose = "web" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Self-referencing rule (e.g. cluster nodes talking to each other)
+# ---------------------------------------------------------------------------
+# ingress_rules = [
+#   {
+#     description    = "All traffic within security group"
+#     protocol       = "-1"
+#     self_reference = true
+#   }
+# ]

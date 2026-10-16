@@ -1,0 +1,140 @@
+# S3 module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/s3/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Basic — application data bucket with versioning
+# ---------------------------------------------------------------------------
+
+buckets = {
+  app-data = {
+    bucket_name        = "my-company-app-data-prod"
+    versioning_enabled = true
+
+    tags = {
+      Purpose = "application-data"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Lambda deployment artifacts (same region as aws_region)
+# ---------------------------------------------------------------------------
+# buckets = {
+#   lambda-artifacts = {
+#     bucket_name        = "my-company-lambda-artifacts-prod"
+#     versioning_enabled = true
+#
+#     tags = {
+#       Purpose = "lambda-artifacts"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# SSE-KMS encryption
+# ---------------------------------------------------------------------------
+# buckets = {
+#   secure-data = {
+#     bucket_name        = "my-company-secure-data-prod"
+#     versioning_enabled = true
+#     sse_algorithm      = "aws:kms"
+#     kms_key_arn        = "arn:aws:kms:ap-south-1:123456789012:key/abcd1234-5678-90ab-cdef-1234567890ab"
+#
+#     tags = {
+#       Purpose = "secure-data"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Server access logging
+# ---------------------------------------------------------------------------
+# Target bucket must exist and grant write access to the S3 logging service.
+#
+# buckets = {
+#   app-data = {
+#     bucket_name        = "my-company-app-data-prod"
+#     versioning_enabled = true
+#
+#     access_logging = {
+#       target_bucket = "my-company-access-logs-prod"
+#       target_prefix = "app-data/"
+#     }
+#
+#     tags = {
+#       Purpose = "application-data"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Lifecycle rules
+# ---------------------------------------------------------------------------
+# buckets = {
+#   logs = {
+#     bucket_name        = "my-company-logs-prod"
+#     versioning_enabled = true
+#
+#     lifecycle_rules = [
+#       {
+#         id      = "expire-old-logs"
+#         enabled = true
+#         expiration = {
+#           days = 90
+#         }
+#       },
+#       {
+#         id      = "transition-to-ia"
+#         enabled = true
+#         filter = {
+#           prefix = "archive/"
+#         }
+#         transitions = [
+#           {
+#             days          = 30
+#             storage_class = "STANDARD_IA"
+#           }
+#         ]
+#       },
+#       {
+#         id      = "cleanup-old-versions"
+#         enabled = true
+#         noncurrent_version_expiration = {
+#           noncurrent_days = 30
+#         }
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "logs"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# CORS rules
+# ---------------------------------------------------------------------------
+# buckets = {
+#   web-assets = {
+#     bucket_name = "my-company-web-assets-prod"
+#
+#     cors_rules = [
+#       {
+#         allowed_methods = ["GET", "HEAD"]
+#         allowed_origins = ["https://www.example.com"]
+#         allowed_headers = ["*"]
+#         max_age_seconds = 3600
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "web-assets"
+#     }
+#   }
+# }

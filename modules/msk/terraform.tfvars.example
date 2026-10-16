@@ -1,0 +1,148 @@
+# MSK module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/msk/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Private MSK cluster with TLS + IAM authentication
+# ---------------------------------------------------------------------------
+# vpcs = { main = { ... } }
+# kms_keys = {
+#   main = { description = "Main encryption key" }
+# }
+# security_groups = {
+#   msk = {
+#     name        = "my-company-msk-prod"
+#     vpc_key     = "main"
+#     description = "MSK broker access"
+#     ingress_rules = [{
+#       description = "Kafka TLS from VPC"
+#       protocol    = "tcp"
+#       from_port   = 9094
+#       to_port     = 9094
+#       cidr_blocks = ["10.0.0.0/16"]
+#     }, {
+#       description = "Kafka IAM from VPC"
+#       protocol    = "tcp"
+#       from_port   = 9098
+#       to_port     = 9098
+#       cidr_blocks = ["10.0.0.0/16"]
+#     }]
+#   }
+# }
+#
+# msk_clusters = {
+#   events = {
+#     name                   = "my-company-events-prod"
+#     vpc_key                = "main"
+#     subnet_keys            = ["az-a", "az-b", "az-c"]
+#     security_group_keys    = ["msk"]
+#     number_of_broker_nodes = 3
+#     broker_instance_type   = "kafka.m5.large"
+#     ebs_volume_size        = 100
+#     kms_key_key            = "main"
+#
+#     client_authentication = {
+#       sasl = { iam = true }
+#     }
+#
+#     logging = {
+#       cloudwatch = {
+#         enabled           = true
+#         retention_in_days = 30
+#       }
+#     }
+#
+#     tags = { Purpose = "event-streaming" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# MSK with SCRAM authentication
+# ---------------------------------------------------------------------------
+# secrets = {
+#   msk-scram = {
+#     name          = "AmazonMSK_my-company-events-prod_scram"
+#     secret_string = jsonencode({ username = "msk-user", password = "CHANGE_ME_STRONG_PASSWORD" })
+#   }
+# }
+#
+# msk_clusters = {
+#   events = {
+#     name                = "my-company-events-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b", "az-c"]
+#     security_group_keys = ["msk"]
+#
+#     client_authentication = {
+#       sasl = { scram = true }
+#     }
+#     scram_secret_keys = ["msk-scram"]
+#
+#     encryption_in_transit = {
+#       client_broker = "TLS"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# MSK with custom broker configuration
+# ---------------------------------------------------------------------------
+# msk_clusters = {
+#   events = {
+#     name                = "my-company-events-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b", "az-c"]
+#     security_group_keys = ["msk"]
+#
+#     configuration = {
+#       create = true
+#       server_properties = {
+#         "auto.create.topics.enable" = "false"
+#         "default.replication.factor" = "3"
+#         "min.insync.replicas"        = "2"
+#         "num.io.threads"             = "8"
+#         "num.network.threads"        = "5"
+#         "socket.receive.buffer.bytes" = "102400"
+#         "socket.request.max.bytes"    = "104857600"
+#         "socket.send.buffer.bytes"    = "102400"
+#         "unclean.leader.election.enable" = "false"
+#         "zookeeper.session.timeout.ms"   = "18000"
+#       }
+#     }
+#
+#     open_monitoring = {
+#       jmx_exporter_enabled  = true
+#       node_exporter_enabled = true
+#     }
+#     enhanced_monitoring = "PER_BROKER"
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# MSK broker logs to S3
+# ---------------------------------------------------------------------------
+# buckets = {
+#   logs = { bucket_name = "my-company-logs-prod" }
+# }
+#
+# msk_clusters = {
+#   events = {
+#     name                = "my-company-events-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b", "az-c"]
+#     security_group_keys = ["msk"]
+#
+#     logging = {
+#       s3 = {
+#         enabled    = true
+#         bucket_key = "logs"
+#         prefix     = "msk/events/"
+#       }
+#     }
+#   }
+# }

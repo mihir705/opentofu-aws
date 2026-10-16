@@ -1,0 +1,157 @@
+# Lambda module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/lambda/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+#
+# Zip deployments: S3 bucket must be in the same region as aws_region.
+# Use package_source_dir to let lambda_packages.tf zip and upload automatically.
+
+# ---------------------------------------------------------------------------
+# Basic — Python API handler (Terraform builds zip and uploads to S3)
+# ---------------------------------------------------------------------------
+
+buckets = {
+  lambda-artifacts = {
+    bucket_name        = "my-company-lambda-artifacts-prod"
+    versioning_enabled = true
+
+    tags = {
+      Purpose = "lambda-artifacts"
+    }
+  }
+}
+
+lambda_functions = {
+  api-handler = {
+    function_name      = "my-company-api-handler-prod"
+    description        = "API request handler"
+    runtime            = "python3.12"
+    handler            = "app.handler"
+    s3_bucket          = "my-company-lambda-artifacts-prod"
+    s3_key             = "api-handler/latest.zip"
+    package_source_dir = "lambda-src/api-handler"
+    memory_size        = 256
+    timeout            = 30
+
+    environment_variables = {
+      ENV = "prod"
+    }
+
+    tags = {
+      Purpose = "api-handler"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Manual S3 zip (no package_source_dir — upload zip yourself)
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   api-handler = {
+#     function_name = "my-company-api-handler-prod"
+#     runtime       = "python3.12"
+#     handler       = "app.handler"
+#     s3_bucket     = "my-company-lambda-artifacts-prod"
+#     s3_key        = "api-handler/latest.zip"
+#     memory_size   = 256
+#     timeout       = 30
+#
+#     tags = {
+#       Purpose = "api-handler"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Function URL with public access
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   webhook = {
+#     function_name = "my-company-webhook-prod"
+#     runtime       = "python3.12"
+#     handler       = "app.handler"
+#     s3_bucket     = "my-company-lambda-artifacts-prod"
+#     s3_key        = "webhook/latest.zip"
+#     package_source_dir = "lambda-src/webhook"
+#     timeout       = 30
+#
+#     function_url = {
+#       authorization_type = "NONE"
+#       cors = {
+#         allow_methods = ["POST"]
+#         allow_origins = ["https://www.example.com"]
+#       }
+#     }
+#
+#     tags = {
+#       Purpose = "webhook"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# VPC + custom IAM permissions + SQS event source
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   queue-processor = {
+#     function_name = "my-company-queue-processor-prod"
+#     runtime       = "python3.12"
+#     handler       = "app.handler"
+#     s3_bucket     = "my-company-lambda-artifacts-prod"
+#     s3_key        = "queue-processor/latest.zip"
+#     package_source_dir = "lambda-src/queue-processor"
+#     timeout       = 60
+#     memory_size   = 512
+#
+#     vpc_config = {
+#       subnet_ids         = ["subnet-abc123", "subnet-def456"]
+#       security_group_ids = ["sg-abc123"]
+#     }
+#
+#     policy_statements = [
+#       {
+#         sid    = "ReadQueue"
+#         effect = "Allow"
+#         actions = [
+#           "sqs:ReceiveMessage",
+#           "sqs:DeleteMessage",
+#           "sqs:GetQueueAttributes",
+#         ]
+#         resources = ["arn:aws:sqs:ap-south-1:123456789012:my-queue"]
+#       }
+#     ]
+#
+#     event_source_mappings = [
+#       {
+#         name             = "sqs-trigger"
+#         event_source_arn = "arn:aws:sqs:ap-south-1:123456789012:my-queue"
+#         batch_size       = 10
+#       }
+#     ]
+#
+#     tags = {
+#       Purpose = "queue-processor"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Container image deployment
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   image-worker = {
+#     function_name = "my-company-image-worker-prod"
+#     package_type  = "Image"
+#     image_uri     = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/my-worker:latest"
+#     timeout       = 120
+#     memory_size   = 1024
+#
+#     tags = {
+#       Purpose = "image-worker"
+#     }
+#   }
+# }

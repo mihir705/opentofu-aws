@@ -1,0 +1,137 @@
+# ECS module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/ecs/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Fargate API service with ECR image
+# ---------------------------------------------------------------------------
+# vpcs = { main = { ... } }
+# security_groups = {
+#   app = {
+#     name        = "my-company-app-ecs-prod"
+#     vpc_key     = "main"
+#     description = "ECS application tasks"
+#     egress_rules = [{
+#       description = "Allow all outbound"
+#       protocol    = "-1"
+#       cidr_blocks = ["0.0.0.0/0"]
+#     }]
+#   }
+# }
+# ecr_repositories = {
+#   api = { name = "my-company-api-prod" }
+# }
+# iam_roles = {
+#   api-task = {
+#     name           = "my-company-api-task-prod"
+#     trust_services = ["ecs-tasks.amazonaws.com"]
+#     policy_statements = [{
+#       effect    = "Allow"
+#       actions   = ["s3:GetObject"]
+#       resources = ["arn:aws:s3:::my-company-app-data-prod/*"]
+#     }]
+#   }
+# }
+#
+# ecs_clusters = {
+#   main = {
+#     name                = "my-company-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b"]
+#     security_group_keys = ["app"]
+#
+#     services = {
+#       api = {
+#         desired_count = 2
+#         cpu           = 512
+#         memory        = 1024
+#         task_role_key = "api-task"
+#
+#         containers = {
+#           api = {
+#             ecr_repository_key = "api"
+#             image_tag          = "latest"
+#             port_mappings = [{
+#               container_port = 8080
+#             }]
+#             environment = {
+#               ENV = "prod"
+#             }
+#           }
+#         }
+#       }
+#     }
+#
+#     tags = { Purpose = "main-ecs" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# API service behind ALB
+# ---------------------------------------------------------------------------
+# load_balancers = {
+#   api = {
+#     name       = "my-company-api-prod"
+#     vpc_key    = "main"
+#     subnet_keys = ["az-a", "az-b"]
+#     target_groups = {
+#       api = {
+#         port        = 8080
+#         protocol    = "HTTP"
+#         target_type = "ip"
+#         health_check_path = "/health"
+#       }
+#     }
+#     listeners = {
+#       http = {
+#         port     = 80
+#         protocol = "HTTP"
+#         default_action = {
+#           type            = "forward"
+#           target_group_key = "api"
+#         }
+#       }
+#     }
+#   }
+# }
+#
+# ecs_clusters = {
+#   main = {
+#     name                = "my-company-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b"]
+#     security_group_keys = ["app"]
+#
+#     services = {
+#       api = {
+#         desired_count = 2
+#         cpu           = 512
+#         memory        = 1024
+#
+#         containers = {
+#           api = {
+#             ecr_repository_key = "api"
+#             port_mappings      = [{ container_port = 8080 }]
+#           }
+#         }
+#
+#         target_group_attachments = [{
+#           alb_key          = "api"
+#           target_group_key = "api"
+#           container_name   = "api"
+#           container_port   = 8080
+#         }]
+#
+#         health_check_grace_period_seconds = 60
+#       }
+#     }
+#   }
+# }
+
+# Minimal example requires vpcs and security_groups configured in the same tfvars file.
+# See commented examples above for full wiring with ECR, IAM roles, and ALB.

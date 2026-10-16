@@ -1,0 +1,142 @@
+# ECR module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/ecr/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Basic application repository with lifecycle cleanup
+# ---------------------------------------------------------------------------
+
+ecr_repositories = {
+  app = {
+    name                 = "my-company-app-prod"
+    image_tag_mutability = "IMMUTABLE"
+    scan_on_push         = true
+
+    lifecycle_rules = [
+      {
+        rule_priority = 1
+        description   = "Keep last 30 images"
+        tag_status    = "any"
+        count_type    = "imageCountMoreThan"
+        count_number  = 30
+      }
+    ]
+
+    tags = {
+      Purpose = "application-images"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# KMS-encrypted repository for regulated workloads
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   app-encryption = {
+#     description         = "Application encryption key"
+#     enable_key_rotation = true
+#     policy_statements = [{
+#       sid    = "AllowECRService"
+#       effect = "Allow"
+#       actions = [
+#         "kms:Encrypt",
+#         "kms:Decrypt",
+#         "kms:ReEncrypt*",
+#         "kms:GenerateDataKey*",
+#         "kms:CreateGrant",
+#         "kms:DescribeKey",
+#       ]
+#       resources = ["*"]
+#       principals = {
+#         type        = "Service"
+#         identifiers = ["ecr.amazonaws.com"]
+#       }
+#     }]
+#     aliases = ["my-company/app/prod"]
+#   }
+# }
+#
+# ecr_repositories = {
+#   secure-app = {
+#     name            = "my-company-secure-app-prod"
+#     encryption_type = "KMS"
+#     kms_key_key     = "app-encryption"
+#     scan_on_push    = true
+#
+#     lifecycle_rules = [
+#       {
+#         rule_priority = 1
+#         description   = "Expire untagged images after 7 days"
+#         tag_status    = "untagged"
+#         count_type    = "sinceImagePushed"
+#         count_unit    = "days"
+#         count_number  = 7
+#       }
+#     ]
+#
+#     tags = { Purpose = "secure-app-images" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Cross-account pull access via repository policy
+# ---------------------------------------------------------------------------
+# ecr_repositories = {
+#   shared-app = {
+#     name = "my-company-shared-app-prod"
+#
+#     policy_statements = [
+#       {
+#         sid    = "AllowCrossAccountPull"
+#         effect = "Allow"
+#         actions = [
+#           "ecr:BatchGetImage",
+#           "ecr:GetDownloadUrlForLayer",
+#           "ecr:BatchCheckLayerAvailability",
+#         ]
+#         principals = {
+#           type        = "AWS"
+#           identifiers = ["arn:aws:iam::123456789012:root"]
+#         }
+#       }
+#     ]
+#
+#     tags = { Purpose = "shared-images" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# CI/CD repository with tagged image retention
+# ---------------------------------------------------------------------------
+# ecr_repositories = {
+#   api = {
+#     name         = "my-company-api-prod"
+#     force_delete = false
+#
+#     lifecycle_rules = [
+#       {
+#         rule_priority   = 1
+#         description     = "Expire release tags older than 90 days"
+#         tag_status      = "tagged"
+#         tag_prefix_list = ["v"]
+#         count_type      = "sinceImagePushed"
+#         count_unit      = "days"
+#         count_number    = 90
+#       },
+#       {
+#         rule_priority = 2
+#         description   = "Keep last 20 any-tag images"
+#         tag_status    = "any"
+#         count_type    = "imageCountMoreThan"
+#         count_number  = 20
+#       }
+#     ]
+#
+#     tags = { Purpose = "api-images" }
+#   }
+# }

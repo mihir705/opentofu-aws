@@ -1,0 +1,148 @@
+# NLB module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/nlb/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+#
+# NLB requires a VPC with at least two subnets. Use vpc_key to auto-wire from the VPC module.
+
+# ---------------------------------------------------------------------------
+# Internet-facing NLB with TCP listener
+# ---------------------------------------------------------------------------
+
+network_load_balancers = {
+  public = {
+    name    = "my-company-public-nlb-prod"
+    vpc_key = "main"
+
+    target_groups = {
+      app = {
+        port        = 8080
+        protocol    = "TCP"
+        target_type = "ip"
+      }
+    }
+
+    listeners = {
+      tcp = {
+        port             = 8080
+        protocol         = "TCP"
+        target_group_key = "app"
+      }
+    }
+
+    tags = {
+      Purpose = "public-nlb"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# TLS listener (requires ACM certificate in the same region)
+# ---------------------------------------------------------------------------
+# network_load_balancers = {
+#   tls = {
+#     name    = "my-company-tls-nlb-prod"
+#     vpc_key = "main"
+#
+#     target_groups = {
+#       app = {
+#         port        = 443
+#         protocol    = "TCP"
+#         target_type = "ip"
+#       }
+#     }
+#
+#     listeners = {
+#       tls = {
+#         port             = 443
+#         protocol         = "TLS"
+#         certificate_arn  = "arn:aws:acm:ap-south-1:123456789012:certificate/abcd1234-5678-90ab-cdef-1234567890ab"
+#         target_group_key = "app"
+#       }
+#     }
+#
+#     tags = { Purpose = "tls-nlb" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Internal NLB in private subnets (set subnet_ids explicitly)
+# ---------------------------------------------------------------------------
+# network_load_balancers = {
+#   internal = {
+#     name     = "my-company-internal-nlb-prod"
+#     vpc_key  = "main"
+#     internal = true
+#     subnet_ids = ["subnet-private-a-id", "subnet-private-b-id"]
+#
+#     target_groups = {
+#       app = {
+#         port        = 9090
+#         protocol    = "TCP"
+#         target_type = "ip"
+#       }
+#     }
+#
+#     listeners = {
+#       tcp = {
+#         port             = 9090
+#         protocol         = "TCP"
+#         target_group_key = "app"
+#       }
+#     }
+#
+#     tags = { Purpose = "internal-nlb" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Register IP targets (e.g. EC2 private IPs or ECS tasks)
+# ---------------------------------------------------------------------------
+# target_groups = {
+#   app = {
+#     port        = 8080
+#     protocol    = "TCP"
+#     target_type = "ip"
+#     targets = [
+#       { id = "10.0.11.50", port = 8080 },
+#       { id = "10.0.12.50", port = 8080 },
+#     ]
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Static IP / Elastic IP per subnet (use subnet_mappings instead of subnet_ids)
+# ---------------------------------------------------------------------------
+# network_load_balancers = {
+#   static = {
+#     name    = "my-company-static-nlb-prod"
+#     vpc_key = "main"
+#
+#     subnet_mappings = [
+#       { subnet_id = "subnet-public-a-id", allocation_id = "eipalloc-abc123" },
+#       { subnet_id = "subnet-public-b-id", allocation_id = "eipalloc-def456" },
+#     ]
+#
+#     target_groups = {
+#       app = {
+#         port        = 8080
+#         protocol    = "TCP"
+#         target_type = "ip"
+#       }
+#     }
+#
+#     listeners = {
+#       tcp = {
+#         port             = 8080
+#         protocol         = "TCP"
+#         target_group_key = "app"
+#       }
+#     }
+#
+#     tags = { Purpose = "static-ip-nlb" }
+#   }
+# }

@@ -1,0 +1,135 @@
+# IAM Policy module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/iam-policy/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# S3 read-only policy attached to a role via managed_policy_keys
+# ---------------------------------------------------------------------------
+
+iam_policies = {
+  app-s3-read = {
+    name        = "my-company-app-s3-read-prod"
+    description = "Read-only access to application data bucket"
+
+    policy_statements = [
+      {
+        sid    = "S3AppDataRead"
+        effect = "Allow"
+        actions = [
+          "s3:GetObject",
+          "s3:ListBucket",
+        ]
+        resources = [
+          "arn:aws:s3:::my-company-app-data-prod",
+          "arn:aws:s3:::my-company-app-data-prod/*",
+        ]
+      }
+    ]
+
+    tags = {
+      Purpose = "app-s3-read"
+    }
+  }
+}
+
+# iam_roles = {
+#   app-ec2 = {
+#     name                    = "my-company-app-ec2-prod"
+#     trust_services          = ["ec2.amazonaws.com"]
+#     create_instance_profile = true
+#     managed_policy_keys     = ["app-s3-read"]
+#     tags                    = { Purpose = "app-ec2" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Secrets Manager read policy with resource-scoped access
+# ---------------------------------------------------------------------------
+# secrets = {
+#   app-config = {
+#     name = "my-company-app-config-prod"
+#   }
+# }
+#
+# iam_policies = {
+#   app-secrets-read = {
+#     name        = "my-company-app-secrets-read-prod"
+#     description = "Read application secrets"
+#
+#     policy_statements = [
+#       {
+#         sid    = "SecretsRead"
+#         effect = "Allow"
+#         actions = [
+#           "secretsmanager:GetSecretValue",
+#           "secretsmanager:DescribeSecret",
+#         ]
+#         resources = [
+#           "arn:aws:secretsmanager:ap-south-1:123456789012:secret:my-company-app-config-prod-*",
+#         ]
+#       }
+#     ]
+#
+#     tags = { Purpose = "app-secrets-read" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Full custom policy JSON (advanced)
+# ---------------------------------------------------------------------------
+# iam_policies = {
+#   custom-deploy = {
+#     name_prefix = "my-company-deploy"
+#     description = "Custom deployment policy"
+#
+#     policy_json = jsonencode({
+#       Version = "2012-10-17"
+#       Statement = [
+#         {
+#           Sid      = "ECRPull"
+#           Effect   = "Allow"
+#           Action   = ["ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"]
+#           Resource = "*"
+#         }
+#       ]
+#     })
+#
+#     tags = { Purpose = "deploy" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Deny policy for permissions boundary or explicit deny layering
+# ---------------------------------------------------------------------------
+# iam_policies = {
+#   deny-iam-mutations = {
+#     name        = "my-company-deny-iam-mutations-prod"
+#     description = "Deny IAM mutation actions"
+#
+#     policy_statements = [
+#       {
+#         sid         = "DenyIAMMutations"
+#         effect      = "Deny"
+#         not_actions = []
+#         actions = [
+#           "iam:CreateUser",
+#           "iam:DeleteUser",
+#           "iam:CreateRole",
+#           "iam:DeleteRole",
+#           "iam:AttachUserPolicy",
+#           "iam:DetachUserPolicy",
+#           "iam:PutUserPolicy",
+#           "iam:DeleteUserPolicy",
+#         ]
+#         resources = ["*"]
+#       }
+#     ]
+#
+#     tags = { Purpose = "security-baseline" }
+#   }
+# }

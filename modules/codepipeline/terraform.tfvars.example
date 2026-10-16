@@ -1,0 +1,148 @@
+# CodePipeline module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/codepipeline/README.md
+#
+# Prerequisites:
+#   - S3 bucket for artifacts (buckets block or artifact_bucket)
+#   - CodeStar connection ARN for GitHub/GitLab sources
+#   - CodeBuild project for build stage (optional codebuild_project_key)
+
+# ---------------------------------------------------------------------------
+# GitHub Source → CodeBuild (V2 pipeline)
+# ---------------------------------------------------------------------------
+
+# buckets = {
+#   pipeline-artifacts = {
+#     bucket_name = "my-company-pipeline-artifacts-prod"
+#     tags = { Purpose = "pipeline-artifacts" }
+#   }
+# }
+#
+# codebuild_projects = {
+#   api = {
+#     name = "my-company-api-build-prod"
+#     source = { type = "CODEPIPELINE" }
+#     artifacts = { type = "CODEPIPELINE" }
+#     environment = { image = "aws/codebuild/standard:7.0" }
+#   }
+# }
+#
+# codepipelines = {
+#   api = {
+#     name                = "my-company-api-pipeline-prod"
+#     artifact_bucket_key = "pipeline-artifacts"
+#
+#     stages = [
+#       {
+#         name = "Source"
+#         actions = [
+#           {
+#             name             = "Source"
+#             category         = "Source"
+#             owner            = "AWS"
+#             provider         = "CodeStarSourceConnection"
+#             version          = "1"
+#             output_artifacts = ["source_output"]
+#             configuration = {
+#               ConnectionArn    = "arn:aws:codestar-connections:ap-south-1:123456789012:connection/abc123"
+#               FullRepositoryId = "my-org/my-api"
+#               BranchName       = "main"
+#             }
+#           }
+#         ]
+#       },
+#       {
+#         name = "Build"
+#         actions = [
+#           {
+#             name                  = "Build"
+#             category              = "Build"
+#             owner                 = "AWS"
+#             provider              = "CodeBuild"
+#             version               = "1"
+#             input_artifacts       = ["source_output"]
+#             codebuild_project_key = "api"
+#           }
+#         ]
+#       }
+#     ]
+#
+#     trigger = {
+#       provider_type = "CodeStarSourceConnection"
+#       git_configuration = {
+#         source_action_name = "Source"
+#         push = [
+#           {
+#             branches = {
+#               includes = ["main"]
+#             }
+#           }
+#         ]
+#       }
+#     }
+#
+#     tags = { Purpose = "api-pipeline" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# S3 source → CodeBuild (manual configuration)
+# ---------------------------------------------------------------------------
+# codepipelines = {
+#   api = {
+#     name            = "my-company-api-pipeline-prod"
+#     artifact_bucket = "my-company-pipeline-artifacts-prod"
+#
+#     stages = [
+#       {
+#         name = "Source"
+#         actions = [
+#           {
+#             name             = "Source"
+#             category         = "Source"
+#             owner            = "AWS"
+#             provider         = "S3"
+#             version          = "1"
+#             output_artifacts = ["source_output"]
+#             configuration = {
+#               S3Bucket    = "my-company-source-bucket-prod"
+#               S3ObjectKey = "source/latest.zip"
+#               PollForSourceChanges = "false"
+#             }
+#           }
+#         ]
+#       },
+#       {
+#         name = "Build"
+#         actions = [
+#           {
+#             name            = "Build"
+#             category        = "Build"
+#             owner           = "AWS"
+#             provider        = "CodeBuild"
+#             version         = "1"
+#             input_artifacts = ["source_output"]
+#             configuration = {
+#               ProjectName = "my-company-api-build-prod"
+#             }
+#           }
+#         ]
+#       }
+#     ]
+#
+#     tags = { Purpose = "api-pipeline" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Encrypted artifacts with KMS
+# ---------------------------------------------------------------------------
+# codepipelines = {
+#   api = {
+#     name                 = "my-company-api-pipeline-prod"
+#     artifact_bucket_key  = "pipeline-artifacts"
+#     artifact_kms_key_key   = "app-encryption"
+#     stages = [ ... ]
+#   }
+# }

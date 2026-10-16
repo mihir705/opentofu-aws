@@ -1,0 +1,111 @@
+# EKS module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/eks/README.md
+
+# ---------------------------------------------------------------------------
+# EKS cluster with managed node group (requires VPC with private subnets)
+# ---------------------------------------------------------------------------
+
+# security_groups = {
+#   eks = {
+#     name    = "my-company-eks-prod"
+#     vpc_key = "main"
+#     egress_rules = [{
+#       protocol    = "-1"
+#       cidr_blocks = ["0.0.0.0/0"]
+#     }]
+#   }
+# }
+
+# eks_clusters = {
+#   main = {
+#     name               = "my-company-prod"
+#     kubernetes_version = "1.31"
+#
+#     vpc_key     = "main"
+#     subnet_keys = ["az-a", "az-b"]
+#     security_group_keys = ["eks"]
+#
+#     endpoint_public_access  = true
+#     endpoint_private_access = true
+#     public_access_cidrs     = ["0.0.0.0/0"]
+#
+#     node_groups = {
+#       general = {
+#         instance_types = ["t3.medium"]
+#         desired_size   = 2
+#         min_size       = 1
+#         max_size       = 4
+#       }
+#     }
+#
+#     tags = { Purpose = "main-kubernetes" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# KMS-encrypted secrets + custom add-ons
+# ---------------------------------------------------------------------------
+# kms_keys = {
+#   app-encryption = {
+#     description         = "Application encryption key"
+#     enable_key_rotation = true
+#     aliases             = ["my-company/app/prod"]
+#   }
+# }
+#
+# eks_clusters = {
+#   main = {
+#     name               = "my-company-prod"
+#     kubernetes_version = "1.31"
+#     vpc_key            = "main"
+#     subnet_keys        = ["az-a", "az-b"]
+#     kms_key_key        = "app-encryption"
+#
+#     node_groups = {
+#       general = {
+#         instance_types = ["m6i.large"]
+#         desired_size   = 3
+#         min_size       = 2
+#         max_size       = 6
+#       }
+#     }
+#
+#     addons = {
+#       vpc-cni    = {}
+#       coredns    = {}
+#       kube-proxy = {}
+#       "aws-ebs-csi-driver" = {
+#         service_account_role_arn = "arn:aws:iam::123456789012:role/AmazonEKS_EBS_CSI_DriverRole"
+#       }
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Spot node group with taints
+# ---------------------------------------------------------------------------
+# eks_clusters = {
+#   main = {
+#     name               = "my-company-prod"
+#     kubernetes_version = "1.31"
+#     vpc_key            = "main"
+#     subnet_keys        = ["az-a", "az-b"]
+#
+#     node_groups = {
+#       spot = {
+#         instance_types = ["t3.medium", "t3a.medium"]
+#         capacity_type  = "SPOT"
+#         desired_size   = 2
+#         min_size       = 0
+#         max_size       = 10
+#         taints = [{
+#           key    = "spot"
+#           value  = "true"
+#           effect = "NO_SCHEDULE"
+#         }]
+#       }
+#     }
+#   }
+# }

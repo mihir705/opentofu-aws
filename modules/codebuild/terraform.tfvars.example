@@ -1,0 +1,189 @@
+# CodeBuild module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/codebuild/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# GitHub source with managed IAM role and CloudWatch logs
+# ---------------------------------------------------------------------------
+
+codebuild_projects = {
+  api = {
+    name        = "my-company-api-build-prod"
+    description = "Build and test API service"
+
+    source = {
+      type                = "GITHUB"
+      location            = "https://github.com/my-org/my-api.git"
+      buildspec           = "buildspec.yml"
+      git_clone_depth     = 1
+      report_build_status = true
+    }
+
+    environment = {
+      image        = "aws/codebuild/standard:7.0"
+      compute_type = "BUILD_GENERAL1_SMALL"
+      type         = "LINUX_CONTAINER"
+
+      environment_variables = [
+        {
+          name  = "ENVIRONMENT"
+          value = "prod"
+        }
+      ]
+    }
+
+    tags = {
+      Purpose = "api-build"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# S3 artifacts + S3 cache
+# ---------------------------------------------------------------------------
+# codebuild_projects = {
+#   api = {
+#     name = "my-company-api-build-prod"
+#
+#     source = {
+#       type     = "GITHUB"
+#       location = "https://github.com/my-org/my-api.git"
+#       buildspec = "buildspec.yml"
+#     }
+#
+#     artifacts = {
+#       type     = "S3"
+#       location = "my-company-build-artifacts-prod"
+#       path     = "api"
+#       packaging = "ZIP"
+#     }
+#
+#     cache = {
+#       type     = "S3"
+#       location = "my-company-build-artifacts-prod/cache"
+#     }
+#
+#     environment = {
+#       image = "aws/codebuild/standard:7.0"
+#     }
+#
+#     tags = { Purpose = "api-build" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# VPC build using vpc_key + security_group_key
+# ---------------------------------------------------------------------------
+# codebuild_projects = {
+#   api = {
+#     name               = "my-company-api-build-prod"
+#     vpc_key            = "main"
+#     security_group_key = "app"
+#
+#     source = {
+#       type     = "GITHUB"
+#       location = "https://github.com/my-org/my-api.git"
+#       buildspec = "buildspec.yml"
+#     }
+#
+#     environment = {
+#       image = "aws/codebuild/standard:7.0"
+#     }
+#
+#     tags = { Purpose = "api-build" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Inline buildspec (NO_SOURCE)
+# ---------------------------------------------------------------------------
+# codebuild_projects = {
+#   utility = {
+#     name = "my-company-utility-build-prod"
+#
+#     source = {
+#       type = "NO_SOURCE"
+#     }
+#
+#     buildspec = <<-EOT
+#       version: 0.2
+#       phases:
+#         build:
+#           commands:
+#             - echo "Hello from CodeBuild"
+#     EOT
+#
+#     environment = {
+#       image = "aws/codebuild/standard:7.0"
+#     }
+#
+#     tags = { Purpose = "utility-build" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# GitHub webhook (push to main)
+# ---------------------------------------------------------------------------
+# codebuild_projects = {
+#   api = {
+#     name = "my-company-api-build-prod"
+#
+#     source = {
+#       type     = "GITHUB"
+#       location = "https://github.com/my-org/my-api.git"
+#       buildspec = "buildspec.yml"
+#     }
+#
+#     environment = {
+#       image = "aws/codebuild/standard:7.0"
+#     }
+#
+#     webhook = {
+#       build_type = "BUILD"
+#       filter_groups = [
+#         [
+#           {
+#             type    = "EVENT"
+#             pattern = "PUSH"
+#           },
+#           {
+#             type    = "HEAD_REF"
+#             pattern = "^refs/heads/main$"
+#           }
+#         ]
+#       ]
+#     }
+#
+#     tags = { Purpose = "api-build" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# ECR image builds (privileged mode + extra IAM)
+# ---------------------------------------------------------------------------
+# environment = {
+#   image           = "aws/codebuild/standard:7.0"
+#   privileged_mode = true
+# }
+#
+# policy_statements = [
+#   {
+#     effect = "Allow"
+#     actions = [
+#       "ecr:GetAuthorizationToken",
+#       "ecr:BatchCheckLayerAvailability",
+#       "ecr:GetDownloadUrlForLayer",
+#       "ecr:BatchGetImage",
+#       "ecr:PutImage",
+#       "ecr:InitiateLayerUpload",
+#       "ecr:UploadLayerPart",
+#       "ecr:CompleteLayerUpload",
+#     ]
+#     resources = ["*"]
+#   }
+# ]

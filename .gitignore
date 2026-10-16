@@ -1,0 +1,24 @@
+# OpenTofu
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.build/
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+override.tofu
+override.tofu.json
+*_override.tofu
+*_override.tofu.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,107 @@
+# IAM User module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/iam-user/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# CI/CD user with customer-managed policy attachment
+# ---------------------------------------------------------------------------
+
+iam_policies = {
+  deploy-read = {
+    name        = "my-company-deploy-read-prod"
+    description = "Read-only deploy artifacts access"
+    policy_statements = [{
+      effect    = "Allow"
+      actions   = ["s3:GetObject", "s3:ListBucket"]
+      resources = ["arn:aws:s3:::my-company-deploy-artifacts-prod", "arn:aws:s3:::my-company-deploy-artifacts-prod/*"]
+    }]
+    tags = { Purpose = "deploy-read" }
+  }
+}
+
+iam_users = {
+  ci-deploy = {
+    name                = "my-company-ci-deploy-prod"
+    managed_policy_keys = ["deploy-read"]
+
+    tags = {
+      Purpose = "ci-deploy"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Programmatic user with access key (prefer roles/OIDC in production)
+# ---------------------------------------------------------------------------
+# iam_users = {
+#   automation = {
+#     name              = "my-company-automation-prod"
+#     create_access_key = true
+#
+#     policy_statements = [{
+#       effect    = "Allow"
+#       actions   = ["s3:PutObject", "s3:GetObject"]
+#       resources = ["arn:aws:s3:::my-company-automation-prod/*"]
+#     }]
+#
+#     tags = { Purpose = "automation" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Console user with login profile
+# ---------------------------------------------------------------------------
+# iam_users = {
+#   breakglass = {
+#     name                    = "my-company-breakglass-prod"
+#     create_login_profile    = true
+#     login_profile_password_reset_required = true
+#     login_profile_password_length       = 20
+#
+#     managed_policy_arns = [
+#       "arn:aws:iam::aws:policy/ReadOnlyAccess",
+#     ]
+#
+#     tags = { Purpose = "breakglass" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# User with permissions boundary and named inline policies
+# ---------------------------------------------------------------------------
+# iam_policies = {
+#   deny-iam-mutations = {
+#     name        = "my-company-deny-iam-mutations-prod"
+#     description = "Deny IAM mutation actions"
+#     policy_statements = [{
+#       effect    = "Deny"
+#       actions   = ["iam:CreateUser", "iam:DeleteUser", "iam:CreateRole", "iam:DeleteRole"]
+#       resources = ["*"]
+#     }]
+#     tags = { Purpose = "security-baseline" }
+#   }
+# }
+#
+# iam_users = {
+#   app-operator = {
+#     name                 = "my-company-app-operator-prod"
+#     permissions_boundary = "arn:aws:iam::123456789012:policy/my-company-deny-iam-mutations-prod"
+#
+#     inline_policies = {
+#       s3-app-read = {
+#         policy_statements = [{
+#           effect    = "Allow"
+#           actions   = ["s3:GetObject", "s3:ListBucket"]
+#           resources = ["arn:aws:s3:::my-company-app-data-prod", "arn:aws:s3:::my-company-app-data-prod/*"]
+#         }]
+#       }
+#     }
+#
+#     tags = { Purpose = "app-operator" }
+#   }
+# }

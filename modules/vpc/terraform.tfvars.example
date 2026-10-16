@@ -1,0 +1,116 @@
+# VPC module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/vpc/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+#
+# Creates: VPC, Internet Gateway, 2 public + 2 private subnets, route tables,
+#          NAT gateway, public/private Network ACLs.
+
+# ---------------------------------------------------------------------------
+# Standard — 2 public + 2 private subnets, single NAT gateway
+# ---------------------------------------------------------------------------
+
+vpcs = {
+  main = {
+    name       = "my-company-prod"
+    cidr_block = "10.0.0.0/16"
+
+    public_subnets = {
+      az-a = {
+        availability_zone = "ap-south-1a"
+        cidr_block        = "10.0.1.0/24"
+      }
+      az-b = {
+        availability_zone = "ap-south-1b"
+        cidr_block        = "10.0.2.0/24"
+      }
+    }
+
+    private_subnets = {
+      az-a = {
+        availability_zone = "ap-south-1a"
+        cidr_block        = "10.0.11.0/24"
+      }
+      az-b = {
+        availability_zone = "ap-south-1b"
+        cidr_block        = "10.0.12.0/24"
+      }
+    }
+
+    tags = {
+      Purpose = "main-network"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# High availability — NAT gateway per AZ (higher cost)
+# ---------------------------------------------------------------------------
+# vpcs = {
+#   main = {
+#     name                   = "my-company-prod"
+#     cidr_block             = "10.0.0.0/16"
+#     single_nat_gateway     = false
+#     one_nat_gateway_per_az = true
+#
+#     public_subnets = {
+#       az-a = { availability_zone = "ap-south-1a", cidr_block = "10.0.1.0/24" }
+#       az-b = { availability_zone = "ap-south-1b", cidr_block = "10.0.2.0/24" }
+#     }
+#
+#     private_subnets = {
+#       az-a = { availability_zone = "ap-south-1a", cidr_block = "10.0.11.0/24" }
+#       az-b = { availability_zone = "ap-south-1b", cidr_block = "10.0.12.0/24" }
+#     }
+#
+#     tags = { Purpose = "main-network" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Private only egress — no NAT (no internet from private subnets)
+# ---------------------------------------------------------------------------
+# vpcs = {
+#   isolated = {
+#     name               = "my-company-isolated-prod"
+#     cidr_block         = "10.1.0.0/16"
+#     enable_nat_gateway = false
+#
+#     public_subnets = {
+#       az-a = { availability_zone = "ap-south-1a", cidr_block = "10.1.1.0/24" }
+#       az-b = { availability_zone = "ap-south-1b", cidr_block = "10.1.2.0/24" }
+#     }
+#
+#     private_subnets = {
+#       az-a = { availability_zone = "ap-south-1a", cidr_block = "10.1.11.0/24" }
+#       az-b = { availability_zone = "ap-south-1b", cidr_block = "10.1.12.0/24" }
+#     }
+#
+#     tags = { Purpose = "isolated-network" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Use VPC subnets with Lambda (reference outputs in lambda_functions)
+# ---------------------------------------------------------------------------
+# lambda_functions = {
+#   vpc-worker = {
+#     function_name      = "my-company-vpc-worker-prod"
+#     runtime            = "python3.12"
+#     handler            = "app.handler"
+#     s3_bucket          = "my-company-lambda-artifacts-prod"
+#     s3_key             = "vpc-worker/latest.zip"
+#     package_source_dir = "lambda-src/vpc-worker"
+#
+#     vpc_config = {
+#       subnet_ids         = ["subnet-xxx", "subnet-yyy"]  # private subnet IDs from tofu output
+#       security_group_ids = ["sg-zzz"]
+#     }
+#
+#     tags = { Purpose = "vpc-worker" }
+#   }
+# }

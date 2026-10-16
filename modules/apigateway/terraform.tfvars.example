@@ -1,0 +1,182 @@
+# API Gateway module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/apigateway/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+
+# ---------------------------------------------------------------------------
+# Lambda proxy HTTP API (requires lambda_functions block)
+# ---------------------------------------------------------------------------
+
+# lambda_functions = {
+#   api-handler = {
+#     function_name      = "my-company-api-handler-prod"
+#     runtime            = "python3.12"
+#     handler            = "app.handler"
+#     s3_bucket          = "my-company-lambda-artifacts-prod"
+#     s3_key             = "api-handler/latest.zip"
+#     package_source_dir = "lambda-src/api-handler"
+#     memory_size        = 256
+#     timeout            = 30
+#
+#     tags = { Purpose = "api-handler" }
+#   }
+# }
+
+api_gateways = {
+  public-api = {
+    name        = "my-company-public-api-prod"
+    description = "Public HTTP API backed by Lambda"
+
+    cors_configuration = {
+      allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      allow_origins = ["https://app.example.com"]
+      allow_headers = ["content-type", "authorization", "x-api-key"]
+      max_age       = 300
+    }
+
+    integrations = {
+      lambda = {
+        integration_type      = "AWS_PROXY"
+        lambda_function_key   = "api-handler"
+      }
+    }
+
+    routes = {
+      catch-all = {
+        route_key       = "$default"
+        integration_key = "lambda"
+      }
+      health = {
+        route_key       = "GET /health"
+        integration_key = "lambda"
+      }
+    }
+
+    stages = {
+      default = {
+        name        = "$default"
+        auto_deploy = true
+        default_route_settings = {
+          detailed_metrics_enabled = true
+          throttling_burst_limit   = 100
+          throttling_rate_limit    = 50
+        }
+      }
+    }
+
+    tags = {
+      Purpose = "public-api"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# JWT authorizer (Cognito / OIDC)
+# ---------------------------------------------------------------------------
+# api_gateways = {
+#   secure-api = {
+#     name = "my-company-secure-api-prod"
+#
+#     integrations = {
+#       lambda = {
+#         integration_type    = "AWS_PROXY"
+#         lambda_function_key = "api-handler"
+#       }
+#     }
+#
+#     authorizers = {
+#       cognito = {
+#         authorizer_type  = "JWT"
+#         identity_sources = ["$request.header.Authorization"]
+#         jwt_configuration = {
+#           audience = ["your-cognito-app-client-id"]
+#           issuer   = "https://cognito-idp.ap-south-1.amazonaws.com/your-user-pool-id"
+#         }
+#       }
+#     }
+#
+#     routes = {
+#       users = {
+#         route_key          = "GET /users"
+#         integration_key    = "lambda"
+#         authorization_type = "JWT"
+#         authorizer_key     = "cognito"
+#       }
+#     }
+#
+#     stages = {
+#       default = { name = "$default" }
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# ALB HTTP proxy via VPC link (requires vpcs, load_balancers, security_groups)
+# ---------------------------------------------------------------------------
+# security_groups = {
+#   apigw-vpc-link = {
+#     name    = "my-company-apigw-vpc-link-prod"
+#     vpc_key = "main"
+#     egress_rules = [{
+#       protocol    = "-1"
+#       cidr_blocks = ["0.0.0.0/0"]
+#     }]
+#   }
+# }
+#
+# api_gateways = {
+#   internal-api = {
+#     name = "my-company-internal-api-prod"
+#
+#     vpc_link = {
+#       name                = "internal-alb-link"
+#       vpc_key             = "main"
+#       subnet_keys         = ["az-a", "az-b"]
+#       security_group_keys = ["apigw-vpc-link"]
+#     }
+#
+#     integrations = {
+#       alb = {
+#         integration_type   = "HTTP_PROXY"
+#         integration_method = "ANY"
+#         load_balancer_key  = "public"
+#         connection_type    = "VPC_LINK"
+#       }
+#     }
+#
+#     routes = {
+#       proxy = {
+#         route_key       = "ANY /{proxy+}"
+#         integration_key = "alb"
+#       }
+#     }
+#
+#     stages = {
+#       default = { name = "$default" }
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Custom domain (ACM certificate must be in the same region as the API)
+# ---------------------------------------------------------------------------
+# api_gateways = {
+#   public-api = {
+#     name = "my-company-public-api-prod"
+#     # ... integrations, routes ...
+#
+#     domain = {
+#       domain_name     = "api.example.com"
+#       certificate_arn = "arn:aws:acm:ap-south-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+#       stage_key       = "default"
+#     }
+#
+#     stages = {
+#       default = { name = "$default" }
+#     }
+#   }
+# }

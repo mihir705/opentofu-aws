@@ -1,0 +1,124 @@
+# CloudFront module — terraform.tfvars example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/cloudfront/README.md
+#
+# Required in terraform.tfvars (once per environment):
+#   aws_region   = "ap-south-1"
+#   default_tags = { Environment = "prod", ManagedBy = "opentofu" }
+#
+# After apply, upload site files:
+#   aws s3 sync ./dist s3://<origin_bucket_name>/
+
+# ---------------------------------------------------------------------------
+# Basic — static site with private S3 origin + SPA routing
+# ---------------------------------------------------------------------------
+
+cloudfront_distributions = {
+  static-site = {
+    distribution_comment = "Static website CDN"
+    origin_bucket_name   = "my-company-static-site-prod"
+    default_root_object  = "index.html"
+    spa_fallback         = true
+
+    tags = {
+      Purpose = "static-site"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Custom domain with ACM certificate (cert must be in us-east-1)
+# ---------------------------------------------------------------------------
+# cloudfront_distributions = {
+#   static-site = {
+#     origin_bucket_name  = "my-company-static-site-prod"
+#     default_root_object = "index.html"
+#     spa_fallback        = true
+#
+#     aliases             = ["www.example.com", "example.com"]
+#     acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-5678-90ab-cdef-1234567890ab"
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Existing S3 bucket as origin (managed by the S3 module)
+# ---------------------------------------------------------------------------
+# cloudfront_distributions = {
+#   static-site = {
+#     create_origin_bucket = false
+#     manage_origin_bucket_policy = true
+#
+#     existing_origin_bucket_id                   = "my-company-web-assets-prod"
+#     existing_origin_bucket_arn                  = "arn:aws:s3:::my-company-web-assets-prod"
+#     existing_origin_bucket_regional_domain_name = "my-company-web-assets-prod.s3.ap-south-1.amazonaws.com"
+#
+#     default_root_object = "index.html"
+#     spa_fallback        = true
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Security headers + WAF + access logging
+# ---------------------------------------------------------------------------
+# cloudfront_distributions = {
+#   static-site = {
+#     origin_bucket_name  = "my-company-static-site-prod"
+#     default_root_object = "index.html"
+#     spa_fallback        = true
+#
+#     response_headers_policy_id = "67f7725c-6f97-4210-82d7-5512b31e9d23"
+#     web_acl_id                 = "arn:aws:wafv2:us-east-1:123456789012:global/webacl/my-acl/abcd1234-5678-90ab-cdef-1234567890ab"
+#
+#     logging_config = {
+#       bucket = "my-company-cloudfront-logs-prod.s3.amazonaws.com"
+#       prefix = "static-site/"
+#     }
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Legacy cache TTL controls (disable managed cache policy)
+# ---------------------------------------------------------------------------
+# cloudfront_distributions = {
+#   static-site = {
+#     origin_bucket_name = "my-company-static-site-prod"
+#     cache_policy_id    = null
+#     min_ttl            = 0
+#     default_ttl        = 3600
+#     max_ttl            = 86400
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Geo restriction
+# ---------------------------------------------------------------------------
+# cloudfront_distributions = {
+#   static-site = {
+#     origin_bucket_name = "my-company-static-site-prod"
+#     spa_fallback       = true
+#
+#     geo_restriction_type      = "whitelist"
+#     geo_restriction_locations = ["IN", "US", "GB"]
+#
+#     tags = {
+#       Purpose = "static-site"
+#     }
+#   }
+# }

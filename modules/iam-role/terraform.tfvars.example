@@ -1,0 +1,210 @@
+# IAM Role module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/iam-role/README.md
+
+# ---------------------------------------------------------------------------
+# Lambda execution role with AWS managed policy
+# ---------------------------------------------------------------------------
+
+iam_roles = {
+  lambda-exec = {
+    name           = "my-company-lambda-exec-prod"
+    description    = "Lambda execution role"
+    trust_services = ["lambda.amazonaws.com"]
+
+    managed_policy_arns = [
+      "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+    ]
+
+    tags = {
+      Purpose = "lambda-execution"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Role with customer-managed policy from iam_policies (managed_policy_keys)
+# ---------------------------------------------------------------------------
+# iam_policies = {
+#   app-s3-read = {
+#     name        = "my-company-app-s3-read-prod"
+#     description = "Read-only access to application data bucket"
+#     policy_statements = [{
+#       effect    = "Allow"
+#       actions   = ["s3:GetObject", "s3:ListBucket"]
+#       resources = ["arn:aws:s3:::my-company-app-data-prod", "arn:aws:s3:::my-company-app-data-prod/*"]
+#     }]
+#     tags = { Purpose = "app-s3-read" }
+#   }
+# }
+#
+# iam_roles = {
+#   app-ec2 = {
+#     name                    = "my-company-app-ec2-prod"
+#     trust_services          = ["ec2.amazonaws.com"]
+#     create_instance_profile = true
+#     managed_policy_keys     = ["app-s3-read"]
+#     tags                    = { Purpose = "app-ec2" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# EC2 application role with instance profile + conditional S3 policy
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   app-ec2 = {
+#     name                    = "my-company-app-ec2-prod"
+#     description             = "EC2 application instance role"
+#     trust_services          = ["ec2.amazonaws.com"]
+#     create_instance_profile = true
+#
+#     policy_statements = [
+#       {
+#         sid    = "S3AppDataRead"
+#         effect = "Allow"
+#         actions = ["s3:GetObject", "s3:ListBucket"]
+#         resources = [
+#           "arn:aws:s3:::my-company-app-data-prod",
+#           "arn:aws:s3:::my-company-app-data-prod/*",
+#         ]
+#         conditions = [
+#           {
+#             test     = "StringLike"
+#             variable = "s3:prefix"
+#             values   = ["app/*"]
+#           }
+#         ]
+#       }
+#     ]
+#
+#     tags = { Purpose = "app-ec2" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Cross-account role with external ID on service trust conditions
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   cross-account = {
+#     name = "my-company-cross-account-prod"
+#
+#     trust_principals = [
+#       {
+#         type        = "AWS"
+#         identifiers = ["arn:aws:iam::123456789012:root"]
+#         conditions = [
+#           {
+#             test     = "StringEquals"
+#             variable = "sts:ExternalId"
+#             values   = ["my-external-id"]
+#           }
+#         ]
+#       }
+#     ]
+#
+#     policy_statements = [
+#       {
+#         effect    = "Allow"
+#         actions   = ["s3:ListBucket", "s3:GetObject"]
+#         resources = ["arn:aws:s3:::my-company-shared-bucket/*"]
+#       }
+#     ]
+#
+#     tags = { Purpose = "cross-account-access" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# GitHub Actions OIDC deploy role
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   github-deploy = {
+#     name = "my-company-github-deploy-prod"
+#
+#     trust_principals = [
+#       {
+#         type        = "Federated"
+#         identifiers = ["arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"]
+#         conditions = [
+#           {
+#             test     = "StringEquals"
+#             variable = "token.actions.githubusercontent.com:aud"
+#             values   = ["sts.amazonaws.com"]
+#           },
+#           {
+#             test     = "StringLike"
+#             variable = "token.actions.githubusercontent.com:sub"
+#             values   = ["repo:my-org/my-repo:*"]
+#           }
+#         ]
+#       }
+#     ]
+#
+#     assume_role_actions = ["sts:AssumeRoleWithWebIdentity"]
+#
+#     policy_statements = [
+#       {
+#         effect    = "Allow"
+#         actions   = ["s3:PutObject", "s3:GetObject"]
+#         resources = ["arn:aws:s3:::my-company-deploy-artifacts-prod/*"]
+#       }
+#     ]
+#
+#     tags = { Purpose = "github-oidc-deploy" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Least-privilege policy using not_actions
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   audit-readonly = {
+#     name           = "my-company-audit-readonly-prod"
+#     trust_services = ["lambda.amazonaws.com"]
+#
+#     policy_statements = [
+#       {
+#         sid         = "ReadOnlyExceptSensitive"
+#         effect      = "Allow"
+#         not_actions = ["iam:*", "organizations:*", "account:*"]
+#         resources   = ["*"]
+#       }
+#     ]
+#
+#     tags = { Purpose = "audit-readonly" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Multiple named inline policies
+# ---------------------------------------------------------------------------
+# iam_roles = {
+#   app = {
+#     name           = "my-company-app-role-prod"
+#     trust_services = ["ecs-tasks.amazonaws.com"]
+#
+#     inline_policies = {
+#       s3-access = {
+#         policy_statements = [
+#           {
+#             effect    = "Allow"
+#             actions   = ["s3:GetObject"]
+#             resources = ["arn:aws:s3:::my-bucket/*"]
+#           }
+#         ]
+#       }
+#       logs = {
+#         policy_statements = [
+#           {
+#             effect    = "Allow"
+#             actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+#             resources = ["arn:aws:logs:*:*:*"]
+#           }
+#         ]
+#       }
+#     }
+#
+#     tags = { Purpose = "ecs-task" }
+#   }
+# }

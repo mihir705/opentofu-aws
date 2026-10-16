@@ -1,0 +1,116 @@
+# RDS module — terraform.tfvars.example
+#
+# Copy the blocks you need into environments/prod/terraform.tfvars
+# Documentation: modules/rds/README.md
+
+# ---------------------------------------------------------------------------
+# PostgreSQL in private subnets with AWS-managed master password
+# ---------------------------------------------------------------------------
+
+rds_instances = {
+  app-db = {
+    identifier     = "my-company-app-db-prod"
+    engine         = "postgres"
+    engine_version_lookup = {
+      version = "16"
+      latest  = true
+    }
+    instance_class = "db.t4g.micro"
+    allocated_storage = 20
+    username       = "dbadmin"
+    manage_master_user_password = true
+
+    db_name = "appdb"
+
+    vpc_key     = "main"
+    subnet_keys = ["az-a", "az-b"]
+    security_group_keys = ["rds"]
+
+    storage_encrypted = true
+    multi_az          = false
+    deletion_protection = true
+
+    enabled_cloudwatch_logs_exports = ["postgresql"]
+
+    tags = {
+      Purpose = "application-database"
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# MySQL with Terraform-generated password (retrieve from tofu output)
+# ---------------------------------------------------------------------------
+# rds_instances = {
+#   analytics-db = {
+#     identifier     = "my-company-analytics-db-prod"
+#     engine         = "mysql"
+#     engine_version = "8.0.39"
+#     instance_class = "db.t3.small"
+#     allocated_storage = 50
+#     max_allocated_storage = 200
+#     username       = "admin"
+#     generate_password = {}
+#
+#     db_name = "analytics"
+#
+#     vpc_key     = "main"
+#     subnet_keys = ["az-a", "az-b"]
+#     security_group_keys = ["rds"]
+#
+#     create_parameter_group  = true
+#     parameter_group_family  = "mysql8.0"
+#     parameters = [
+#       {
+#         name  = "slow_query_log"
+#         value = "1"
+#       }
+#     ]
+#
+#     backup_retention_period = 14
+#     tags = { Purpose = "analytics-database" }
+#   }
+# }
+
+# ---------------------------------------------------------------------------
+# Multi-AZ PostgreSQL with KMS encryption
+# ---------------------------------------------------------------------------
+# rds_instances = {
+#   core-db = {
+#     identifier     = "my-company-core-db-prod"
+#     engine         = "postgres"
+#     engine_version = "16.4"
+#     instance_class = "db.r6g.large"
+#     allocated_storage = 100
+#     username       = "dbadmin"
+#     manage_master_user_password = true
+#
+#     vpc_key     = "main"
+#     subnet_keys = ["az-a", "az-b"]
+#     security_group_keys = ["rds"]
+#     kms_key_key = "app"
+#
+#     multi_az = true
+#     performance_insights_enabled = true
+#
+#     tags = { Purpose = "core-database" }
+#   }
+# }
+
+# Required companion security group:
+#
+# security_groups = {
+#   rds = {
+#     name    = "my-company-rds-prod"
+#     vpc_key = "main"
+#     ingress_rules = [
+#       {
+#         description                  = "PostgreSQL from app SG"
+#         protocol                     = "tcp"
+#         from_port                    = 5432
+#         to_port                      = 5432
+#         referenced_security_group_id = null # set app SG id or use security_group_keys pattern at env level
+#       }
+#     ]
+#   }
+# }

@@ -1,0 +1,520 @@
+# Copy this file to terraform.tfvars and update values for your environment.
+# cp terraform.tfvars.example terraform.tfvars
+#
+# Module-specific examples (copy blocks from these into this file):
+#   modules/s3/terraform.tfvars.example
+#   modules/secrets-manager/terraform.tfvars.example
+#   modules/kms/terraform.tfvars.example
+#   modules/lambda/terraform.tfvars.example
+#   modules/cloudfront/terraform.tfvars.example
+#   modules/vpc/terraform.tfvars.example
+#   modules/alb/terraform.tfvars.example
+#   modules/nlb/terraform.tfvars.example
+#   modules/security-group/terraform.tfvars.example
+#   modules/codebuild/terraform.tfvars.example
+#   modules/codepipeline/terraform.tfvars.example
+#   modules/iam-role/terraform.tfvars.example
+#   modules/apigateway/terraform.tfvars.example
+#   modules/sns/terraform.tfvars.example
+#   modules/sqs/terraform.tfvars.example
+#   modules/eks/terraform.tfvars.example
+#
+# Omit any block you do not need. No empty {} required.
+
+aws_region         = "ap-south-1"
+aws_replica_region = "us-east-1"
+
+default_tags = {
+  Environment = "prod"
+  ManagedBy   = "opentofu"
+  Project     = "opentofu-aws"
+}
+
+# --- S3 (see modules/s3/terraform.tfvars.example) ---
+buckets = {
+  app-data = {
+    bucket_name        = "my-company-app-data-prod"
+    versioning_enabled = true
+
+    tags = {
+      Purpose = "application-data"
+    }
+  }
+}
+
+# --- Secrets Manager (see modules/secrets-manager/terraform.tfvars.example) ---
+secrets = {
+  app-config = {
+    name        = "my-company/app/config/prod"
+    description = "Application configuration secret"
+
+    tags = {
+      Purpose = "app-config"
+    }
+  }
+}
+
+# --- KMS (see modules/kms/terraform.tfvars.example) ---
+kms_keys = {
+  app-encryption = {
+    description         = "Application data encryption key"
+    enable_key_rotation = true
+    allowed_services    = ["s3", "secretsmanager"]
+    aliases             = ["my-company/app/prod"]
+
+    tags = {
+      Purpose = "app-encryption"
+    }
+  }
+}
+
+# --- Lambda (see modules/lambda/terraform.tfvars.example) ---
+lambda_functions = {
+  api-handler = {
+    function_name      = "my-company-api-handler-prod"
+    runtime            = "python3.12"
+    handler            = "app.handler"
+    s3_bucket          = "my-company-lambda-artifacts-prod"
+    s3_key             = "api-handler/latest.zip"
+    package_source_dir = "lambda-src/api-handler"
+
+    tags = {
+      Purpose = "api-handler"
+    }
+  }
+}
+
+# --- CloudFront (see modules/cloudfront/terraform.tfvars.example) ---
+cloudfront_distributions = {
+  static-site = {
+    origin_bucket_name  = "my-company-static-site-prod"
+    default_root_object = "index.html"
+    spa_fallback        = true
+
+    tags = {
+      Purpose = "static-site"
+    }
+  }
+}
+
+# --- VPC (see modules/vpc/terraform.tfvars.example) ---
+vpcs = {
+  main = {
+    name       = "my-company-prod"
+    cidr_block = "10.0.0.0/16"
+
+    public_subnets = {
+      az-a = { availability_zone = "ap-south-1a", cidr_block = "10.0.1.0/24" }
+      az-b = { availability_zone = "ap-south-1b", cidr_block = "10.0.2.0/24" }
+    }
+
+    private_subnets = {
+      az-a = { availability_zone = "ap-south-1a", cidr_block = "10.0.11.0/24" }
+      az-b = { availability_zone = "ap-south-1b", cidr_block = "10.0.12.0/24" }
+    }
+
+    tags = {
+      Purpose = "main-network"
+    }
+  }
+}
+
+# --- ALB (see modules/alb/terraform.tfvars.example) ---
+load_balancers = {
+  public = {
+    name    = "my-company-public-alb-prod"
+    vpc_key = "main"
+
+    target_groups = {
+      app = {
+        port              = 80
+        protocol          = "HTTP"
+        target_type       = "ip"
+        health_check_path = "/health"
+      }
+    }
+
+    listeners = {
+      http = {
+        port     = 80
+        protocol = "HTTP"
+        default_action = {
+          type             = "forward"
+          target_group_key = "app"
+        }
+      }
+    }
+
+    tags = {
+      Purpose = "public-alb"
+    }
+  }
+}
+
+# --- NLB (see modules/nlb/terraform.tfvars.example) ---
+# network_load_balancers = {
+#   public = {
+#     name    = "my-company-public-nlb-prod"
+#     vpc_key = "main"
+#
+#     target_groups = {
+#       app = {
+#         port        = 8080
+#         protocol    = "TCP"
+#         target_type = "ip"
+#       }
+#     }
+#
+#     listeners = {
+#       tcp = {
+#         port             = 8080
+#         protocol         = "TCP"
+#         target_group_key = "app"
+#       }
+#     }
+#
+#     tags = {
+#       Purpose = "public-nlb"
+#     }
+#   }
+# }
+
+# --- CodeBuild (see modules/codebuild/terraform.tfvars.example) ---
+# codebuild_projects = {
+#   api = {
+#     name        = "my-company-api-build-prod"
+#     description = "Build and test API service"
+#
+#     source = {
+#       type                = "GITHUB"
+#       location            = "https://github.com/my-org/my-api.git"
+#       buildspec           = "buildspec.yml"
+#       git_clone_depth     = 1
+#       report_build_status = true
+#     }
+#
+#     environment = {
+#       image        = "aws/codebuild/standard:7.0"
+#       compute_type = "BUILD_GENERAL1_SMALL"
+#     }
+#
+#     tags = {
+#       Purpose = "api-build"
+#     }
+#   }
+# }
+
+# --- CodePipeline (see modules/codepipeline/terraform.tfvars.example) ---
+# codepipelines = {
+#   api = {
+#     name                = "my-company-api-pipeline-prod"
+#     artifact_bucket_key = "pipeline-artifacts"
+#     stages = [ ... ]
+#   }
+# }
+
+# --- IAM Policies (see modules/iam-policy/terraform.tfvars.example) ---
+# iam_policies = {
+#   app-s3-read = {
+#     name        = "my-company-app-s3-read-prod"
+#     description = "Read-only access to application data bucket"
+#     policy_statements = [{
+#       sid    = "S3AppDataRead"
+#       effect = "Allow"
+#       actions = ["s3:GetObject", "s3:ListBucket"]
+#       resources = [
+#         "arn:aws:s3:::my-company-app-data-prod",
+#         "arn:aws:s3:::my-company-app-data-prod/*",
+#       ]
+#     }]
+#     tags = { Purpose = "app-s3-read" }
+#   }
+# }
+
+# --- IAM Users (see modules/iam-user/terraform.tfvars.example) ---
+# iam_users = {
+#   ci-deploy = {
+#     name                = "my-company-ci-deploy-prod"
+#     managed_policy_keys = ["deploy-read"]
+#     tags                = { Purpose = "ci-deploy" }
+#   }
+# }
+
+# --- IAM Roles (see modules/iam-role/terraform.tfvars.example) ---
+# iam_roles = {
+#   lambda-exec = {
+#     name           = "my-company-lambda-exec-prod"
+#     trust_services = ["lambda.amazonaws.com"]
+#     managed_policy_arns = [
+#       "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+#     ]
+#     managed_policy_keys = ["app-s3-read"]
+#     tags = { Purpose = "lambda-execution" }
+#   }
+#   github-deploy = {
+#     name = "my-company-github-deploy-prod"
+#     trust_principals = [{
+#       type        = "Federated"
+#       identifiers = ["arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"]
+#       conditions = [{
+#         test     = "StringLike"
+#         variable = "token.actions.githubusercontent.com:sub"
+#         values   = ["repo:my-org/my-repo:*"]
+#       }]
+#     }]
+#     assume_role_actions = ["sts:AssumeRoleWithWebIdentity"]
+#     policy_statements = [{
+#       effect    = "Allow"
+#       actions   = ["s3:PutObject"]
+#       resources = ["arn:aws:s3:::my-company-deploy-artifacts-prod/*"]
+#     }]
+#     tags = { Purpose = "github-oidc-deploy" }
+#   }
+# }
+
+# --- EC2 Instances (see modules/ec2/terraform.tfvars.example) ---
+# ec2_instances = {
+#   app = {
+#     name          = "my-company-app-prod"
+#     instance_type = "t3.small"
+#     vpc_key       = "main"
+#     subnet_key    = "az-a"
+#     subnet_type   = "private"
+#     security_group_keys = ["app"]
+#     iam_role_key  = "app-ec2"
+#     ami_lookup = {
+#       owners = ["amazon"]
+#       filters = { name = ["al2023-ami-*-kernel-*-x86_64"] }
+#     }
+#     # key_name optional — omit for keyless instances (SSM Session Manager)
+#     root_block_device = { volume_size = 30 }
+#     ignore_ami_changes = true
+#     tags = { Purpose = "application-server" }
+#   }
+# }
+
+# --- RDS Instances (see modules/rds/terraform.tfvars.example) ---
+# rds_instances = {
+#   app-db = {
+#     identifier     = "my-company-app-db-prod"
+#     engine         = "postgres"
+#     engine_version_lookup = { version = "16", latest = true }
+#     instance_class = "db.t4g.micro"
+#     allocated_storage = 20
+#     username       = "dbadmin"
+#     manage_master_user_password = true
+#     db_name        = "appdb"
+#     vpc_key        = "main"
+#     subnet_keys    = ["az-a", "az-b"]
+#     security_group_keys = ["rds"]
+#     tags = { Purpose = "application-database" }
+#   }
+# }
+
+# --- API Gateway (see modules/apigateway/terraform.tfvars.example) ---
+# api_gateways = {
+#   public-api = {
+#     name        = "my-company-public-api-prod"
+#     description = "Public HTTP API backed by Lambda"
+#
+#     cors_configuration = {
+#       allow_methods = ["GET", "POST", "OPTIONS"]
+#       allow_origins = ["https://app.example.com"]
+#       allow_headers = ["content-type", "authorization"]
+#     }
+#
+#     integrations = {
+#       lambda = {
+#         integration_type    = "AWS_PROXY"
+#         lambda_function_key = "api-handler"
+#       }
+#     }
+#
+#     routes = {
+#       catch-all = {
+#         route_key       = "$default"
+#         integration_key = "lambda"
+#       }
+#     }
+#
+#     stages = {
+#       default = { name = "$default" }
+#     }
+#
+#     tags = { Purpose = "public-api" }
+#   }
+# }
+
+# --- SNS (see modules/sns/terraform.tfvars.example) ---
+# sns_topics = {
+#   app-alerts = {
+#     name         = "my-company-app-alerts-prod"
+#     display_name = "Application Alerts"
+#
+#     subscriptions = {
+#       ops-email = {
+#         protocol = "email"
+#         endpoint = "ops@example.com"
+#       }
+#     }
+#
+#     tags = { Purpose = "app-alerts" }
+#   }
+# }
+
+# --- SQS (see modules/sqs/terraform.tfvars.example) ---
+# sqs_queues = {
+#   app-jobs = {
+#     name                       = "my-company-app-jobs-prod"
+#     visibility_timeout_seconds = 60
+#     receive_wait_time_seconds  = 20
+#     create_dlq                 = true
+#     max_receive_count          = 5
+#
+#     tags = { Purpose = "background-jobs" }
+#   }
+# }
+
+# --- ECR (see modules/ecr/terraform.tfvars.example) ---
+# ecr_repositories = {
+#   app = {
+#     name                 = "my-company-app-prod"
+#     image_tag_mutability = "IMMUTABLE"
+#     scan_on_push         = true
+#     lifecycle_rules = [{
+#       rule_priority = 1
+#       description   = "Keep last 30 images"
+#       tag_status    = "any"
+#       count_type    = "imageCountMoreThan"
+#       count_number  = 30
+#     }]
+#     tags = { Purpose = "application-images" }
+#   }
+# }
+
+# --- EFS (see modules/efs/terraform.tfvars.example) ---
+# efs_file_systems = {
+#   app-data = {
+#     name                = "my-company-app-data-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b"]
+#     security_group_keys = ["efs"]
+#     access_points = {
+#       app = {
+#         path = "/app"
+#         posix_user = { uid = 1000, gid = 1000 }
+#         creation_info = { owner_uid = 1000, owner_gid = 1000, permissions = "755" }
+#       }
+#     }
+#     tags = { Purpose = "shared-app-storage" }
+#   }
+# }
+
+# --- ECS (see modules/ecs/terraform.tfvars.example) ---
+# ecs_clusters = {
+#   main = {
+#     name                = "my-company-prod"
+#     vpc_key             = "main"
+#     subnet_keys         = ["az-a", "az-b"]
+#     security_group_keys = ["app"]
+#     services = {
+#       api = {
+#         desired_count = 2
+#         cpu           = 512
+#         memory        = 1024
+#         containers = {
+#           api = {
+#             ecr_repository_key = "api"
+#             image_tag          = "latest"
+#             port_mappings      = [{ container_port = 8080 }]
+#           }
+#         }
+#       }
+#     }
+#     tags = { Purpose = "main-ecs" }
+#   }
+# }
+
+# --- Cognito (see modules/cognito/terraform.tfvars.example) ---
+# cognito_user_pools = {
+#   app = {
+#     name = "my-company-app-prod"
+#     domain = {
+#       prefix = "my-company-app-prod"
+#     }
+#     clients = {
+#       web = {
+#         allowed_oauth_flows_user_pool_client = true
+#         allowed_oauth_flows                  = ["code"]
+#         allowed_oauth_scopes                 = ["email", "openid", "profile"]
+#         callback_urls                        = ["https://app.example.com/callback"]
+#         logout_urls                          = ["https://app.example.com/logout"]
+#       }
+#     }
+#     tags = { Purpose = "app-authentication" }
+#   }
+# }
+
+# --- MSK (see modules/msk/terraform.tfvars.example) ---
+# msk_clusters = {
+#   events = {
+#     name                   = "my-company-events-prod"
+#     vpc_key                = "main"
+#     subnet_keys            = ["az-a", "az-b", "az-c"]
+#     security_group_keys    = ["msk"]
+#     number_of_broker_nodes = 3
+#     kms_key_key            = "main"
+#     client_authentication = {
+#       sasl = { iam = true }
+#     }
+#     logging = {
+#       cloudwatch = { enabled = true }
+#     }
+#     tags = { Purpose = "event-streaming" }
+#   }
+# }
+
+# --- EKS (see modules/eks/terraform.tfvars.example) ---
+# eks_clusters = {
+#   main = {
+#     name               = "my-company-prod"
+#     kubernetes_version = "1.31"
+#     vpc_key            = "main"
+#     subnet_keys        = ["az-a", "az-b"]
+#     security_group_keys = ["eks"]
+#
+#     node_groups = {
+#       general = {
+#         instance_types = ["t3.medium"]
+#         desired_size   = 2
+#         min_size       = 1
+#         max_size       = 4
+#       }
+#     }
+#
+#     tags = { Purpose = "main-kubernetes" }
+#   }
+# }
+
+# --- Security Groups (see modules/security-group/terraform.tfvars.example) ---
+security_groups = {
+  app = {
+    name        = "my-company-app-prod"
+    vpc_key     = "main"
+    description = "Application instance security group"
+
+    ingress_rules = [
+      {
+        description = "HTTP from VPC"
+        protocol    = "tcp"
+        from_port   = 8080
+        to_port     = 8080
+        cidr_blocks = ["10.0.0.0/16"]
+      }
+    ]
+
+    tags = {
+      Purpose = "app"
+    }
+  }
+}
